@@ -6,7 +6,7 @@ ARG VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="sparklyballs"
 
-# environment variables
+# environment variables
 ENV HOME="/config" \
 MINETEST_SUBGAME_PATH="/config/.minetest/games"
 
@@ -66,7 +66,16 @@ RUN \
  make && \
  make install && \
  echo "**** compile minetestserver ****" && \
- git clone --depth 1 https://github.com/minetest/minetest.git /tmp/minetest && \
+ mkdir -p \
+	/tmp/minetest && \
+ MINE_TAG=$(curl -sX GET "https://api.github.com/repos/minetest/minetest/releases/latest" \
+	| awk '/tag_name/{print $4;exit}' FS='[""]') && \
+ curl -o \
+ /tmp/minetest-src.tar.gz -L \
+	"https://github.com/minetest/minetest/archive/$MINE_TAG.tar.gz" && \
+ tar xf \
+ /tmp/minetest-src.tar.gz -C \
+	/tmp/minetest --strip-components=1 && \
  cp /tmp/minetest//minetest.conf.example /defaults/minetest.conf && \
  cd /tmp/minetest && \
  cmake . \
@@ -97,9 +106,9 @@ RUN \
  rm -rf \
 	/tmp/*
 
-# add local files
+# add local files
 COPY root /
 
-# ports and volumes
+# ports and volumes
 EXPOSE 30000/udp
 VOLUME /config/.minetest
