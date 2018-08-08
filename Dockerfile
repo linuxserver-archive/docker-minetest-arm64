@@ -1,4 +1,4 @@
-FROM lsiobase/alpine.arm64:3.7
+kFROM lsiobase/alpine.arm64:3.8
 
 # set version label
 ARG BUILD_DATE
@@ -6,7 +6,7 @@ ARG VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="sparklyballs"
 
-# environment variables
+# environment variables
 ENV HOME="/config" \
 MINETEST_SUBGAME_PATH="/config/.minetest/games"
 
@@ -66,8 +66,17 @@ RUN \
  make && \
  make install && \
  echo "**** compile minetestserver ****" && \
- git clone --depth 1 https://github.com/minetest/minetest.git /tmp/minetest && \
- cp /tmp/minetest//minetest.conf.example /defaults/minetest.conf && \
+ mkdir -p \
+	/tmp/minetest && \
+ MINETEST_TAG=$(curl -sX GET "https://api.github.com/repos/minetest/minetest/releases/latest" \
+	| awk '/tag_name/{print $4;exit}' FS='[""]') && \
+ curl -o \
+ /tmp/minetest-src.tar.gz -L \
+	"https://github.com/minetest/minetest/archive/${MINETEST_TAG}.tar.gz" && \
+ tar xf \
+ /tmp/minetest-src.tar.gz -C \
+	/tmp/minetest --strip-components=1 && \
+ cp /tmp/minetest/minetest.conf.example /defaults/minetest.conf && \
  cd /tmp/minetest && \
  cmake . \
 	-DBUILD_CLIENT=0 \
@@ -89,17 +98,24 @@ RUN \
  mkdir -p \
 	/defaults/games && \
  cp -pr  /usr/share/minetest/games/* /defaults/games/ && \
- echo "**** fetch additional game from git ****" && \
- git clone --depth 1 https://github.com/minetest/minetest_game.git /defaults/games/minetest && \
+ echo "**** fetch additional game ****" && \
+ mkdir -p \
+	/defaults/games/minetest && \
+ curl -o \
+ /tmp/minetest-game.tar.gz -L \
+	"https://github.com/minetest/minetest_game/archive/${MINETEST_TAG%.*}.tar.gz" && \
+ tar xf \
+ /tmp/minetest-game.tar.gz -C \
+	/defaults/games/minetest --strip-components=1 && \
  echo "**** cleanup ****" && \
  apk del --purge \
 	build-dependencies && \
  rm -rf \
 	/tmp/*
 
-# add local files
+# add local files
 COPY root /
 
-# ports and volumes
+# ports and volumes
 EXPOSE 30000/udp
 VOLUME /config/.minetest

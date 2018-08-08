@@ -77,4 +77,5 @@ You can find the world maps, mods folder and config files in /config/.minetest.
 
 ## Versions
 
++ **08.08.18:** Rebase to alpine 3.8, build from latest release tag instead of master.
 + **03.01.18:** Initial Release. 
